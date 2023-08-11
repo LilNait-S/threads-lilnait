@@ -1,9 +1,12 @@
 "use server";
 
+import { FilterQuery, SortOrder } from "mongoose";
 import { revalidatePath } from "next/cache";
+
 import User from "../models/user.model";
-import { connectToDB } from "../mongoose";
 import Thread from "../models/thread.model";
+
+import { connectToDB } from "../mongoose";
 
 interface Params {
   userId: string;
@@ -64,5 +67,78 @@ export async function fetchUserPosts({ userId }: { userId: string }) {
     return threads;
   } catch (error: any) {
     throw new Error(`Failed to fetch user posts: ${error.message}`);
+  }
+}
+
+/**
+ * Recupera una lista de usuarios que coinciden con los criterios especificados.
+ * Esta función obtiene datos de usuarios de una base de datos MongoDB usando Mongoose.
+ *
+ * @param {object} options - Opciones para la recuperación de usuarios.
+ * @param {string} options.userId - El ID del usuario actual, excluido de la lista.
+ * @param {string} [options.searchString=""] - Cadena de búsqueda para filtrar usuarios por nombre de usuario o nombre.
+ * @param {number} [options.pageNumber=1] - El número de página que se va a recuperar.
+ * @param {number} [options.pageSize=20] - El número de usuarios que se van a recuperar por página.
+ * @param {SortOrder} [options.sortBy="desc"] - El orden en que se deben ordenar los usuarios (ascendente o descendente).
+ * @throws {Error} Si ocurre un error al recuperar los usuarios.
+ */
+export async function fetchUsers({
+  userId,
+  searchString = "",
+  pageNumber = 1,
+  pageSize = 20,
+  sortBy = "desc",
+}: {
+  userId: string;
+  searchString?: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: SortOrder;
+}) {
+  try {
+    // Establece una conexión a la base de datos
+    connectToDB();
+
+    // Calcula la cantidad de usuarios a omitir
+    const skipAmount = (pageNumber - 1) * pageSize;
+
+    // Crea una expresión regular para la búsqueda insensible a mayúsculas/minúsculas
+    const regex = new RegExp(searchString, "i");
+
+    // Construye la consulta para filtrar usuarios
+    const query: FilterQuery<typeof User> = {
+      id: { $ne: userId },
+    };
+
+    // Agrega condiciones de búsqueda si hay una cadena de búsqueda
+    if (searchString.trim() !== "") {
+      query.$or = [
+        { username: { $regex: regex } },
+        { name: { $regex: regex } },
+      ];
+    }
+
+    // Define opciones de ordenamiento
+    const sortOptions = { createdAt: sortBy };
+
+    // Crea una consulta para recuperar usuarios con filtros y opciones
+    const usersQuery = User.find(query)
+      .sort(sortOptions)
+      .skip(skipAmount)
+      .limit(pageSize);
+
+    // Cuenta el número total de usuarios para la paginación
+    const totalUsersCount = await User.countDocuments(query);
+
+    // Ejecuta la consulta de usuarios para recuperar datos
+    const users = await usersQuery.exec();
+
+    // Verifica si hay más usuarios disponibles para la próxima página
+    const isNext = totalUsersCount > skipAmount + users.length;
+
+    // Devuelve la lista de usuarios y la información de paginación
+    return { users, isNext };
+  } catch (error: any) {
+    throw new Error(`Error al recuperar usuarios: ${error.message}`);
   }
 }
