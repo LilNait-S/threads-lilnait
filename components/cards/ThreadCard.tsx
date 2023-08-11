@@ -21,7 +21,7 @@ interface Props {
     author: {
       image: string;
     };
-  };
+  }[];
   isComment?: boolean;
 }
 
@@ -34,6 +34,7 @@ const ThreadCard = ({
   community,
   createdAt,
   comments,
+  isComment,
 }: Props) => {
   return (
     <article className="flex w-full flex-col rounded-xl bg-dark-2 p-7">
@@ -67,13 +68,16 @@ const ThreadCard = ({
                   height={24}
                   className="cursor-pointer object-contain"
                 />
-                <img
-                  src="/assets/reply.svg"
-                  alt="reply"
-                  width={24}
-                  height={24}
-                  className="cursor-pointer object-contain"
-                />
+                <Link href={`/thread/${id}`}>
+                  <img
+                    src="/assets/reply.svg"
+                    alt="reply"
+                    width={24}
+                    height={24}
+                    className="cursor-pointer object-contain"
+                  />
+                </Link>
+
                 <img
                   src="/assets/repost.svg"
                   alt="repost"
@@ -89,6 +93,13 @@ const ThreadCard = ({
                   className="cursor-pointer object-contain"
                 />
               </div>
+              {isComment && comments.length > 0 && (
+                <Link href={`/thread/${id}`}>
+                  <p className="mt-1 text-subtle-medium text-gray-1">
+                    {comments.length} replies
+                  </p>
+                </Link>
+              )}
             </div>
           </div>
         </div>
