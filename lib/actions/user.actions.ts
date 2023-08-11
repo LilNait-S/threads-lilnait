@@ -142,3 +142,34 @@ export async function fetchUsers({
     throw new Error(`Error al recuperar usuarios: ${error.message}`);
   }
 }
+
+/**
+ * Recupera la actividad reciente relacionada con un usuario.
+ * Esta función obtiene threads secundarios y respuestas de una base de datos MongoDB usando Mongoose.
+ *
+ * @param {object} options - Opciones para la recuperación de actividad.
+ * @param {string} options.userId - El ID del usuario cuya actividad se va a recuperar.
+ * @throws {Error} Si ocurre un error al recuperar la actividad.
+ */
+export async function getActivity({ userId }: { userId: string }) {
+  try {
+    // Establece una conexión a la base de datos
+    connectToDB(); // Se asume que esta función establece la conexión a la base de datos
+
+    // Recupera threads del usuario
+    const userThreads = await Thread.find({ author: userId });
+
+    // Extrae IDs de threads secundarios de los threads del usuario
+    const childThreadIds = userThreads.flatMap((thread) => thread.children);
+
+    // Recupera respuestas usando los IDs de los threads secundarios
+    const replies = await Thread.find({
+      _id: { $in: childThreadIds },
+      author: { $ne: userId },
+    }).populate({ path: "author", model: User, select: "name image _id" });
+
+    return replies;
+  } catch (error: any) {
+    throw new Error(`Error al recuperar la actividad: ${error.message}`);
+  }
+}
