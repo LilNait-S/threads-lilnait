@@ -133,6 +133,61 @@ export async function fetchThreadById({ id }: { id: string }) {
 
     return thread;
   } catch (error: any) {
-    throw new Error(`Error al recuperar el hilo: ${error.message}`);
+    throw new Error(`Error fetching thread: ${error.message}`);
+  }
+}
+
+/**
+ * Agrega un comentario a un hilo existente.
+ * Esta función agrega un comentario a un hilo en una base de datos MongoDB usando Mongoose.
+ *
+ * @param {string} options.threadId - El ID del hilo al que se agregará el comentario.
+ * @param {string} options.commentText - El texto del comentario a agregar.
+ * @param {string} options.userId - El ID del usuario que realiza el comentario.
+ * @param {string} options.path - La ruta asociada al comentario.
+ * @throws {Error} Si ocurre un error al agregar el comentario al hilo.
+ */
+export async function addCommentToThread({
+  threadId,
+  commentText,
+  userId,
+  path,
+}: {
+  threadId: string;
+  commentText: string;
+  userId: string;
+  path: string;
+}) {
+  // Establece una conexión a la base de datos
+  connectToDB();
+
+  try {
+    // Encuentra el hilo original al que se agregará el comentario
+    const originalThread = await Thread.findById(threadId);
+
+    if (!originalThread) {
+      throw new Error("Thread not found");
+    }
+
+    // Crea un nuevo hilo para el comentario
+    const commentThread = new Thread({
+      text: commentText,
+      author: userId,
+      parentId: threadId,
+    });
+
+    // Guarda el hilo del comentario en la base de datos
+    const savedCommentThread = await commentThread.save();
+
+    // Agrega el ID del hilo de comentario al arreglo de hijos del hilo original
+    originalThread.children.push(savedCommentThread._id);
+
+    // Guarda el hilo original con la referencia al nuevo hilo de comentario
+    await originalThread.save();
+
+    // Revalida la ruta asociada
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Error adding comment to thread: ${error.message}`);
   }
 }
