@@ -1,8 +1,9 @@
-
-const Page = () => {
+const Page = async () => {
   return (
-    <div>Comunites</div>
-  )
-}
+    <section>
+      <h1 className="head-text mb-10">Communities</h1>
+    </section>
+  );
+};
 
-export default Page
+export default Page;
