@@ -49,7 +49,7 @@ export async function createCommunity(
   }
 }
 
-export async function fetchCommunityDetails(id: string) {
+export async function fetchCommunityDetails({ id }: { id: string }) {
   try {
     connectToDB();
 
@@ -70,7 +70,7 @@ export async function fetchCommunityDetails(id: string) {
   }
 }
 
-export async function fetchCommunityPosts(id: string) {
+export async function fetchCommunityPosts({ id }: { id: string }) {
   try {
     connectToDB();
 
